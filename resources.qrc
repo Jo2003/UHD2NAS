@@ -1,0 +1,7 @@
+<RCC>
+    <qresource prefix="/">
+        <file>uhd2nas.ico</file>
+        <file>help.html</file>
+        <file>screenshot.png</file>
+    </qresource>
+</RCC>

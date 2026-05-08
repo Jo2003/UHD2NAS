@@ -1,0 +1,37 @@
+# Build artifacts
+build/
+cmake-build-*/
+CMakeFiles/
+CMakeCache.txt
+Makefile
+*.o
+*.obj
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+moc_*
+ui_*
+qrc_*
+
+# Generated documentation
+doc/html/
+
+# IDE files
+.idea/
+.vscode/
+*.pro.user
+*.swp
+*~
+
+# Logs and temp files
+output.log
+*.log
+
+# Chat history
+gemini_chat.md
+
+# Help markdown source (HTML is in resources)
+help.md

@@ -1,0 +1,19 @@
+# Doxyfile for UHD2NAS
+PROJECT_NAME           = "UHD2NAS"
+PROJECT_BRIEF          = "Blu-ray to NAS Encoder with Dolby Vision support"
+PROJECT_NUMBER         = 1.0.0
+OUTPUT_DIRECTORY       = doc
+INPUT                  = src
+RECURSIVE              = YES
+FILE_PATTERNS          = *.h *.cpp
+EXTRACT_ALL            = YES
+EXTRACT_PRIVATE        = YES
+GENERATE_HTML          = YES
+GENERATE_LATEX         = NO
+HTML_OUTPUT            = html
+USE_MDFILE_AS_MAINPAGE =
+SOURCE_BROWSER         = YES
+INLINE_SOURCES         = NO
+HAVE_DOT               = NO
+CLASS_DIAGRAMS         = YES
+COLLABORATION_GRAPH    = NO

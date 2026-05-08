@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>UHD2NAS - Help</title>
+<style>
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    font-size: 16px;
+    line-height: 1.6;
+    color: #1f2328;
+    background: #ffffff;
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 32px 24px;
+  }
+  h1 {
+    font-size: 2em;
+    font-weight: 600;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #d1d9e0;
+    margin-bottom: 16px;
+  }
+  h2 {
+    font-size: 1.5em;
+    font-weight: 600;
+    padding-bottom: 0.3em;
+    border-bottom: 1px solid #d1d9e0;
+    margin-top: 24px;
+    margin-bottom: 16px;
+  }
+  h3 {
+    font-size: 1.25em;
+    font-weight: 600;
+    margin-top: 24px;
+    margin-bottom: 16px;
+  }
+  p, ul, ol {
+    margin-bottom: 16px;
+  }
+  ul, ol {
+    padding-left: 2em;
+  }
+  li {
+    margin-bottom: 4px;
+  }
+  code {
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 85%;
+    background: #eff1f3;
+    border-radius: 6px;
+    padding: 0.2em 0.4em;
+  }
+  table {
+    border-collapse: collapse;
+    width: 100%;
+    margin-bottom: 16px;
+  }
+  th, td {
+    border: 1px solid #d1d9e0;
+    padding: 8px 12px;
+    text-align: left;
+  }
+  th {
+    background: #f6f8fa;
+    font-weight: 600;
+  }
+  tr:nth-child(even) {
+    background: #f6f8fa;
+  }
+  hr {
+    border: none;
+    border-top: 1px solid #d1d9e0;
+    margin: 24px 0;
+  }
+  a {
+    color: #0969da;
+    text-decoration: none;
+  }
+  a:hover {
+    text-decoration: underline;
+  }
+  .screenshot {
+    text-align: center;
+    margin: 24px 0;
+  }
+  .screenshot img {
+    max-width: 100%;
+    border: 1px solid #d1d9e0;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+  }
+  strong {
+    font-weight: 600;
+  }
+  .header-row {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .header-row img {
+    width: 48px;
+    height: 48px;
+  }
+</style>
+</head>
+<body>
+
+<div class="header-row">
+  <img src="screenshot.png" alt="Icon" style="width:48px;height:48px;border-radius:8px;">
+  <h1 style="border:none;margin:0;padding:0;">UHD2NAS - Help</h1>
+</div>
+
+<div class="screenshot">
+  <img src="screenshot.png" alt="UHD2NAS Screenshot">
+</div>
+
+<h2>Overview</h2>
+<p>UHD2NAS re-encodes MKV files from Blu-ray or 4K Ultra HD Blu-ray discs into space-efficient HEVC 10-bit files suitable for NAS storage and streaming to media players.</p>
+<p>The application automatically handles:</p>
+<ul>
+  <li><strong>Crop detection</strong> &ndash; removes black bars</li>
+  <li><strong>Dolby Vision</strong> conversion (Profile 7 &rarr; 8.1) for 4K UHD sources</li>
+  <li><strong>HDR metadata</strong> preservation for 4K content</li>
+  <li><strong>Audio and subtitles</strong> are copied without re-encoding</li>
+</ul>
+
+<hr>
+
+<h2>Main Window</h2>
+
+<h3>Files</h3>
+<ul>
+  <li><strong>Source MKV</strong> &ndash; Select the original MKV file (ripped from Blu-ray via MakeMKV).</li>
+  <li><strong>Target MKV</strong> &ndash; The output file path. Automatically suggested when you pick a source file. If the target already exists, you will be asked to confirm overwrite.</li>
+</ul>
+
+<h3>Encoder Settings</h3>
+<ul>
+  <li><strong>Encoder</strong> &ndash; Choose your encoding method:
+    <ul>
+      <li><strong>Software (libx265)</strong> &ndash; CPU-based, best quality per bit, slowest.</li>
+      <li><strong>Intel QuickSync</strong> &ndash; Hardware encoder using Intel integrated GPU.</li>
+      <li><strong>NVIDIA NVEnc</strong> &ndash; Hardware encoder using NVIDIA GPU (RTX 20+).</li>
+      <li><strong>AMD AMF</strong> &ndash; Hardware encoder using AMD GPU.</li>
+    </ul>
+  </li>
+  <li><strong>Quality</strong> &ndash; Slider from 18 (best quality, larger file) to 25 (lower quality, smaller file). Recommended: 20 for 4K, 22&ndash;23 for Full HD.</li>
+</ul>
+
+<h3>Progress</h3>
+<ul>
+  <li><strong>Step Progress</strong> &ndash; Shows which step of the workflow is currently active (e.g., crop detection, encoding, Dolby Vision injection).</li>
+  <li><strong>Encode Progress</strong> &ndash; Shows the encoding progress as a percentage based on frames processed.</li>
+</ul>
+
+<h3>Buttons</h3>
+<ul>
+  <li><strong>Start</strong> &ndash; Begin the encoding process. Disabled while encoding is in progress.</li>
+  <li><strong>Abort</strong> &ndash; Cancel the current operation. Temporary files are cleaned up.</li>
+  <li><strong>Quit</strong> &ndash; Exit the application.</li>
+</ul>
+
+<h3>Log Output</h3>
+<p>The log area shows the raw output from ffmpeg, dovi_tool and mkvmerge, including the exact command lines being executed (prefixed with <code>[CMD]</code>). Useful for debugging and monitoring encode progress.</p>
+
+<hr>
+
+<h2>Settings</h2>
+<p>Access via the <strong>Settings...</strong> menu entry.</p>
+
+<h3>Tool Paths Tab</h3>
+<p>Configure the paths to the required external tools:</p>
+<ul>
+  <li><strong>ffmpeg</strong> &ndash; The video encoder/decoder.</li>
+  <li><strong>ffprobe</strong> &ndash; Used for analyzing input files (typically in the same folder as ffmpeg).</li>
+  <li><strong>dovi_tool</strong> &ndash; Required only for 4K discs with Dolby Vision metadata.</li>
+  <li><strong>mkvmerge</strong> &ndash; Used for the final muxing step (part of <a href="https://mkvtoolnix.download/">MKVToolNix</a>).</li>
+</ul>
+<p>Download links are provided if you need to obtain the tools.</p>
+
+<h3>Command Templates Tab</h3>
+<p>All tool commands are stored as editable templates with <code>{placeholder}</code> variables. Advanced users can modify these to adjust encoding parameters without recompiling.</p>
+
+<p>Available placeholders:</p>
+<table>
+  <tr><th>Placeholder</th><th>Description</th></tr>
+  <tr><td><code>{ffmpeg}</code></td><td>Path to ffmpeg</td></tr>
+  <tr><td><code>{ffprobe}</code></td><td>Path to ffprobe</td></tr>
+  <tr><td><code>{dovi_tool}</code></td><td>Path to dovi_tool</td></tr>
+  <tr><td><code>{mkvmerge}</code></td><td>Path to mkvmerge</td></tr>
+  <tr><td><code>{input}</code></td><td>Source file path</td></tr>
+  <tr><td><code>{output}</code></td><td>Target file path</td></tr>
+  <tr><td><code>{crop_w}</code></td><td>Detected crop width</td></tr>
+  <tr><td><code>{crop_h}</code></td><td>Detected crop height</td></tr>
+  <tr><td><code>{crop_x}</code></td><td>Crop X offset</td></tr>
+  <tr><td><code>{crop_y}</code></td><td>Crop Y offset</td></tr>
+  <tr><td><code>{crop_top}</code></td><td>Pixels removed from top</td></tr>
+  <tr><td><code>{crop_bottom}</code></td><td>Pixels removed from bottom</td></tr>
+  <tr><td><code>{crf}</code></td><td>Quality value from slider</td></tr>
+  <tr><td><code>{rpu_file}</code></td><td>Extracted RPU file path</td></tr>
+  <tr><td><code>{encoded_hevc}</code></td><td>Intermediate encoded HEVC path</td></tr>
+  <tr><td><code>{injected_hevc}</code></td><td>HEVC with injected RPU path</td></tr>
+  <tr><td><code>{fps}</code></td><td>Detected source framerate (e.g. 23.976)</td></tr>
+</table>
+
+<p>Click <strong>Reset to Defaults</strong> to restore all templates to their original values.</p>
+
+<hr>
+
+<h2>Workflow</h2>
+
+<h3>Full HD Blu-ray (1080p, SDR)</h3>
+<ol>
+  <li>Crop detection (black bar removal)</li>
+  <li>Encode to HEVC 10-bit with audio/subtitle copy</li>
+</ol>
+
+<h3>4K UHD Blu-ray without Dolby Vision</h3>
+<ol>
+  <li>Crop detection</li>
+  <li>Encode to HEVC 10-bit with HDR metadata + audio/subtitle copy</li>
+</ol>
+
+<h3>4K UHD Blu-ray with Dolby Vision (Profile 7)</h3>
+<ol>
+  <li>Crop detection</li>
+  <li>Extract RPU, convert Profile 7 &rarr; 8.1, and reset crop offsets (<code>-m 2 -c</code>)</li>
+  <li>Encode video (HEVC 10-bit, video only)</li>
+  <li>Inject RPU into encoded stream</li>
+  <li>Final mux (combine video with original audio and subtitles)</li>
+</ol>
+
+<hr>
+
+<h2>Tips</h2>
+<ul>
+  <li><strong>Quality 20</strong> is a good default for 4K content (close to transparent).</li>
+  <li><strong>Quality 22&ndash;23</strong> works well for Full HD, since compression artifacts are less visible at 1080p.</li>
+  <li><strong>Hardware encoders</strong> are 5&ndash;10x faster than software but produce slightly larger files at equivalent quality.</li>
+  <li><strong>NVEnc preset p7</strong> gives the best quality from NVIDIA hardware at the cost of some speed.</li>
+  <li>Files with spaces in the name are fully supported.</li>
+  <li>The application detects whether the source is Full HD or 4K automatically based on the crop dimensions.</li>
+</ul>
+
+<hr>
+
+<h2>Requirements</h2>
+<ul>
+  <li><a href="https://ffmpeg.org/download.html">ffmpeg</a> (with HEVC encoder support)</li>
+  <li><a href="https://ffmpeg.org/download.html">ffprobe</a> (included with ffmpeg)</li>
+  <li><a href="https://github.com/quietvoid/dovi_tool/releases">dovi_tool</a> (only needed for Dolby Vision content)</li>
+  <li><a href="https://mkvtoolnix.download/downloads.html">mkvmerge</a> (part of MKVToolNix, needed for Dolby Vision final mux)</li>
+</ul>
+
+</body>
+</html>
