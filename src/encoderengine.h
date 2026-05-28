@@ -159,6 +159,7 @@ private:
     void startDoviInject();
     void startFinalMux();
     void probeForDovi();
+    void probeCodec();
     void logCmd(const QString &cmd) const;
     QMap<QString, QString> buildVars() const;
 
@@ -180,6 +181,7 @@ private:
     CropInfo m_cropInfo;    ///< Detected crop values.
     bool m_hasDovi = false; ///< True if source has Dolby Vision Profile 7.
     bool m_isFullHD = false;///< True if source is 1080p (not 4K).
+    bool m_isVC1 = false;   ///< True if source codec is VC-1 (no HW decode).
     Step m_currentStep = CropDetect; ///< Current pipeline step.
     int m_totalSteps = 3;   ///< Total steps for progress reporting.
     double m_duration = 0;  ///< Video duration in seconds.

@@ -100,6 +100,36 @@ void TemplateManager::initDefaults()
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
         "-tag:v hvc1 {output}";
 
+    // QSV encode with SW decode (for VC-1 sources that lack HW decode support)
+    m_templates[KEY_ENCODE_QSV_SWDEC] =
+        "{ffmpeg} -i {input} "
+        "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y},format=p010\" "
+        "-map 0:v:0 -map 0:a -map 0:s "
+        "-c:v hevc_qsv -profile:v main10 -preset slow "
+        "-global_quality {crf} -look_ahead 1 -look_ahead_depth 60 "
+        "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
+        "-tag:v hvc1 {output}";
+
+    // NVEnc encode with SW decode (for VC-1 sources)
+    m_templates[KEY_ENCODE_NVENC_SWDEC] =
+        "{ffmpeg} -i {input} "
+        "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y},format=p010\" "
+        "-map 0:v:0 -map 0:a -map 0:s "
+        "-c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq {crf} -b:v 0 "
+        "-profile:v main10 "
+        "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
+        "-tag:v hvc1 {output}";
+
+    // AMF encode with SW decode (for VC-1 sources)
+    m_templates[KEY_ENCODE_AMF_SWDEC] =
+        "{ffmpeg} -i {input} "
+        "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y},format=p010\" "
+        "-map 0:v:0 -map 0:a -map 0:s "
+        "-c:v hevc_amf -profile:v main10 -quality quality "
+        "-qp_i {crf} -qp_p {crf} "
+        "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
+        "-tag:v hvc1 {output}";
+
     // Inject converted RPU into encoded HEVC stream
     m_templates[KEY_INJECT_DOVI] =
         "{dovi_tool} inject-rpu -i {encoded_hevc} --rpu-in {rpu_file} -o {injected_hevc}";

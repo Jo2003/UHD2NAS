@@ -77,6 +77,33 @@ void EncoderEngine::probeForDovi()
             emit logOutput("No Dolby Vision detected - HDR10 metadata will be passed through\n");
         }
 
+        // Now probe codec to detect VC-1 (no HW decode support)
+        probe->deleteLater();
+        probeCodec();
+    });
+
+    QMap<QString, QString> vars = buildVars();
+    QString cmd = TemplateManager::resolve(m_templates.getTemplate(TemplateManager::KEY_PROBE_DOVI), vars);
+    logCmd(cmd);
+    probe->run(cmd);
+}
+
+void EncoderEngine::probeCodec()
+{
+    auto *probe = new ProcessRunner(this);
+    auto *probeOutput = new QString();
+
+    connect(probe, &ProcessRunner::outputReady, this, [probeOutput](const QString &data) {
+        *probeOutput += data;
+    });
+    connect(probe, &ProcessRunner::finished, this, [this, probe, probeOutput](int) {
+        QString codec = probeOutput->trimmed().toLower();
+        delete probeOutput;
+
+        m_isVC1 = codec.contains("vc1");
+        if (m_isVC1)
+            emit logOutput("Source codec: VC-1 (HW decode not supported, using SW decode)\n");
+
         // Start crop detection
         m_currentStep = CropDetect;
         emit stepProgress(1, m_totalSteps, "Detecting crop...");
@@ -87,7 +114,8 @@ void EncoderEngine::probeForDovi()
     });
 
     QMap<QString, QString> vars = buildVars();
-    QString cmd = TemplateManager::resolve(m_templates.getTemplate(TemplateManager::KEY_PROBE_DOVI), vars);
+    QString cmd = QString("%1 -v quiet -select_streams v:0 -show_entries stream=codec_name -of default=nw=1:nk=1 %2")
+                      .arg(vars["ffprobe"], vars["input"]);
     logCmd(cmd);
     probe->run(cmd);
 }
@@ -143,11 +171,21 @@ void EncoderEngine::startEncode()
     if (m_isFullHD || !m_hasDovi) {
         // FullHD or 4K without DV: direct encode to output with audio/subs
         // HDR10 metadata is automatically passed through by ffmpeg
-        switch (m_encoder) {
-        case TemplateManager::Software: templateKey = TemplateManager::KEY_ENCODE_SW_FHD; break;
-        case TemplateManager::QuickSync: templateKey = TemplateManager::KEY_ENCODE_QSV_FHD; break;
-        case TemplateManager::NVEnc: templateKey = TemplateManager::KEY_ENCODE_NVENC_FHD; break;
-        case TemplateManager::AMF: templateKey = TemplateManager::KEY_ENCODE_AMF_FHD; break;
+        if (m_isVC1 && m_encoder != TemplateManager::Software) {
+            // VC-1 sources need SW decode + HW encode
+            switch (m_encoder) {
+            case TemplateManager::Software: break; // unreachable
+            case TemplateManager::QuickSync: templateKey = TemplateManager::KEY_ENCODE_QSV_SWDEC; break;
+            case TemplateManager::NVEnc: templateKey = TemplateManager::KEY_ENCODE_NVENC_SWDEC; break;
+            case TemplateManager::AMF: templateKey = TemplateManager::KEY_ENCODE_AMF_SWDEC; break;
+            }
+        } else {
+            switch (m_encoder) {
+            case TemplateManager::Software: templateKey = TemplateManager::KEY_ENCODE_SW_FHD; break;
+            case TemplateManager::QuickSync: templateKey = TemplateManager::KEY_ENCODE_QSV_FHD; break;
+            case TemplateManager::NVEnc: templateKey = TemplateManager::KEY_ENCODE_NVENC_FHD; break;
+            case TemplateManager::AMF: templateKey = TemplateManager::KEY_ENCODE_AMF_FHD; break;
+            }
         }
     } else {
         // 4K UHD with DV: video-only encode (audio/subs added in final mux)

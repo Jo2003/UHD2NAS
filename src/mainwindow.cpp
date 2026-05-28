@@ -195,7 +195,8 @@ void MainWindow::onBrowseSource()
 
 void MainWindow::onBrowseTarget()
 {
-    QString path = QFileDialog::getSaveFileName(this, "Select Target MKV", QString(), "MKV Files (*.mkv)");
+    QString path = QFileDialog::getSaveFileName(this, "Select Target MKV", QString(),
+        "MKV Files (*.mkv)", nullptr, QFileDialog::DontConfirmOverwrite);
     if (!path.isEmpty()) m_targetEdit->setText(path);
 }
 

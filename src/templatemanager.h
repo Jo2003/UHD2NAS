@@ -38,7 +38,7 @@ public:
      * @brief Build ID (YYYYMMDD integer). When this changes, saved templates
      *        are considered outdated and replaced with new defaults.
      */
-    static constexpr int BUILD_ID = 20260514;
+    static constexpr int BUILD_ID = 20260528;
     /**
      * @brief Supported hardware encoder types.
      */
@@ -107,6 +107,9 @@ public:
     static constexpr const char* KEY_ENCODE_QSV_FHD = "encode_qsv_fhd";   ///< FullHD QuickSync encode (SDR)
     static constexpr const char* KEY_ENCODE_NVENC_FHD = "encode_nvenc_fhd"; ///< FullHD NVEnc encode (SDR)
     static constexpr const char* KEY_ENCODE_AMF_FHD = "encode_amf_fhd";   ///< FullHD AMD AMF encode (SDR)
+    static constexpr const char* KEY_ENCODE_QSV_SWDEC = "encode_qsv_swdec";   ///< QSV encode with SW decode (VC-1)
+    static constexpr const char* KEY_ENCODE_NVENC_SWDEC = "encode_nvenc_swdec"; ///< NVEnc encode with SW decode (VC-1)
+    static constexpr const char* KEY_ENCODE_AMF_SWDEC = "encode_amf_swdec";   ///< AMF encode with SW decode (VC-1)
     static constexpr const char* KEY_INJECT_DOVI = "inject_dovi";     ///< Inject RPU into encoded HEVC stream
     static constexpr const char* KEY_MUXFINAL = "mux_final";          ///< Final mux: DV video + original audio/subs
 
