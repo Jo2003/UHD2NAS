@@ -84,6 +84,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_crfSlider = new QSlider(Qt::Horizontal);
     m_crfSlider->setRange(15, 30);
     m_crfSlider->setValue(20);
+    m_crfSlider->setSingleStep(1);
+    m_crfSlider->setPageStep(1);
     m_crfSlider->setTickPosition(QSlider::TicksBelow);
     m_crfSlider->setTickInterval(1);
     m_crfSlider->setToolTip("15 = highest quality (larger file), 30 = lower quality (smaller file)");
