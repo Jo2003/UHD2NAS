@@ -19,6 +19,7 @@ void CropDetector::detect(const QString &ffmpegPath, const QString &inputFile, c
     vars["input"] = q(inputFile);
 
     QString cmd = TemplateManager::resolve(templateCmd, vars);
+    emit logOutput("[CMD] " + cmd + "\n");
 
     m_rawOutput.clear();
     m_result = CropInfo();
