@@ -64,7 +64,7 @@ void TemplateManager::initDefaults()
 
     // Software x265 10-bit encode for FullHD (SDR, no HDR params)
     m_templates[KEY_ENCODE_SW_FHD] =
-        "{ffmpeg} -i {input} -map 0:v:0 -map 0:a -map 0:s "
+        "{ffmpeg} -i {input} -map 0:v:0 -map 0:a -map 0:s -map 0:t? -map_chapters 0 -map_metadata 0 "
         "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y}\" "
         "-c:v libx265 -preset slow -crf {crf} -pix_fmt yuv420p10le "
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
@@ -74,7 +74,7 @@ void TemplateManager::initDefaults()
     m_templates[KEY_ENCODE_QSV_FHD] =
         "{ffmpeg} -hwaccel qsv -hwaccel_output_format qsv -extra_hw_frames 64 -i {input} "
         "-vf \"vpp_qsv=cw={crop_w}:ch={crop_h}:cx={crop_x}:cy={crop_y},format=p010\" "
-        "-map 0:v:0 -map 0:a -map 0:s "
+        "-map 0:v:0 -map 0:a -map 0:s -map 0:t? -map_chapters 0 -map_metadata 0 "
         "-c:v hevc_qsv -profile:v main10 -preset slow "
         "-global_quality {crf} -look_ahead 1 -look_ahead_depth 60 "
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
@@ -84,7 +84,7 @@ void TemplateManager::initDefaults()
     m_templates[KEY_ENCODE_NVENC_FHD] =
         "{ffmpeg} -hwaccel cuda -hwaccel_output_format cuda -i {input} "
         "-vf \"hwdownload,format=p010,crop={crop_w}:{crop_h}:{crop_x}:{crop_y},hwupload_cuda\" "
-        "-map 0:v:0 -map 0:a -map 0:s "
+        "-map 0:v:0 -map 0:a -map 0:s -map 0:t? -map_chapters 0 -map_metadata 0 "
         "-c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq {crf} -b:v 0 "
         "-profile:v main10 "
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
@@ -94,7 +94,7 @@ void TemplateManager::initDefaults()
     m_templates[KEY_ENCODE_AMF_FHD] =
         "{ffmpeg} -hwaccel d3d11va -i {input} "
         "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y},format=p010\" "
-        "-map 0:v:0 -map 0:a -map 0:s "
+        "-map 0:v:0 -map 0:a -map 0:s -map 0:t? -map_chapters 0 -map_metadata 0 "
         "-c:v hevc_amf -profile:v main10 -quality quality "
         "-qp_i {crf} -qp_p {crf} "
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
@@ -102,9 +102,9 @@ void TemplateManager::initDefaults()
 
     // QSV encode with SW decode (for VC-1 sources that lack HW decode support)
     m_templates[KEY_ENCODE_QSV_SWDEC] =
-        "{ffmpeg} -i {input} "
+        "{ffmpeg} -fflags +genpts -i {input} "
         "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y},format=p010\" "
-        "-map 0:v:0 -map 0:a -map 0:s "
+        "-map 0:v:0 -map 0:a -map 0:s -map 0:t? -map_chapters 0 -map_metadata 0 "
         "-c:v hevc_qsv -profile:v main10 -preset slow "
         "-global_quality {crf} -look_ahead 1 -look_ahead_depth 60 "
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
@@ -112,9 +112,9 @@ void TemplateManager::initDefaults()
 
     // NVEnc encode with SW decode (for VC-1 sources)
     m_templates[KEY_ENCODE_NVENC_SWDEC] =
-        "{ffmpeg} -i {input} "
+        "{ffmpeg} -fflags +genpts -i {input} "
         "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y},format=p010\" "
-        "-map 0:v:0 -map 0:a -map 0:s "
+        "-map 0:v:0 -map 0:a -map 0:s -map 0:t? -map_chapters 0 -map_metadata 0 "
         "-c:v hevc_nvenc -preset p7 -tune hq -rc vbr -cq {crf} -b:v 0 "
         "-profile:v main10 "
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
@@ -122,9 +122,9 @@ void TemplateManager::initDefaults()
 
     // AMF encode with SW decode (for VC-1 sources)
     m_templates[KEY_ENCODE_AMF_SWDEC] =
-        "{ffmpeg} -i {input} "
+        "{ffmpeg} -fflags +genpts -i {input} "
         "-vf \"crop={crop_w}:{crop_h}:{crop_x}:{crop_y},format=p010\" "
-        "-map 0:v:0 -map 0:a -map 0:s "
+        "-map 0:v:0 -map 0:a -map 0:s -map 0:t? -map_chapters 0 -map_metadata 0 "
         "-c:v hevc_amf -profile:v main10 -quality quality "
         "-qp_i {crf} -qp_p {crf} "
         "-c:a copy -c:s copy -max_muxing_queue_size 9999 "
