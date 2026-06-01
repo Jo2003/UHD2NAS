@@ -38,7 +38,7 @@ public:
      * @brief Build ID (YYYYMMDD integer). When this changes, saved templates
      *        are considered outdated and replaced with new defaults.
      */
-    static constexpr int BUILD_ID = 20260602;
+    static constexpr int BUILD_ID = 20260603;
     /**
      * @brief Supported hardware encoder types.
      */
