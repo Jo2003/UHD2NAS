@@ -129,24 +129,38 @@ void EncoderEngine::probeCodec()
         *probeOutput += data;
     });
     connect(probe, &ProcessRunner::finished, this, [this, probe, probeOutput](int) {
-        QString codec = probeOutput->trimmed().toLower();
+        QString output = probeOutput->trimmed();
         delete probeOutput;
+
+        // Parse codec and width (output: "codec_name\nwidth")
+        QStringList lines = output.split('\n', Qt::SkipEmptyParts);
+        QString codec = lines.value(0).trimmed().toLower();
+        int width = lines.value(1).trimmed().toInt();
 
         m_isVC1 = codec.contains("vc1");
         if (m_isVC1)
             emit logOutput("Source codec: VC-1 (HW decode not supported, using SW decode)\n");
 
+        // Select cropdetect template based on resolution
+        QString cropTemplate;
+        if (width > 1920) {
+            cropTemplate = m_templates.getTemplate(TemplateManager::KEY_CROPDETECT_HDR);
+            emit logOutput(QString("Resolution: %1px (4K/HDR crop detection)\n").arg(width));
+        } else {
+            cropTemplate = m_templates.getTemplate(TemplateManager::KEY_CROPDETECT);
+            emit logOutput(QString("Resolution: %1px (SDR crop detection)\n").arg(width));
+        }
+
         // Start crop detection
         m_currentStep = CropDetect;
         emit stepProgress(1, m_totalSteps, "Detecting crop...");
-        m_cropDetector->detect(m_ffmpegPath, m_inputFile,
-                               m_templates.getTemplate(TemplateManager::KEY_CROPDETECT));
+        m_cropDetector->detect(m_ffmpegPath, m_inputFile, cropTemplate);
 
         probe->deleteLater();
     });
 
     QMap<QString, QString> vars = buildVars();
-    QString cmd = QString("%1 -v quiet -select_streams v:0 -show_entries stream=codec_name -of default=nw=1:nk=1 %2")
+    QString cmd = QString("%1 -v quiet -select_streams v:0 -show_entries stream=codec_name,width -of default=nw=1:nk=1 %2")
                       .arg(vars["ffprobe"], vars["input"]);
     logCmd(cmd);
     probe->run(cmd);

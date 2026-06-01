@@ -203,7 +203,8 @@ void SettingsDialog::populateTemplates()
 {
     struct Entry { const char* key; const char* desc; };
     static const Entry entries[] = {
-        { TemplateManager::KEY_CROPDETECT,       "Crop Detection" },
+        { TemplateManager::KEY_CROPDETECT,       "Crop Detection (SDR/FHD)" },
+        { TemplateManager::KEY_CROPDETECT_HDR,   "Crop Detection (HDR/4K)" },
         { TemplateManager::KEY_PROBE_DOVI,       "Dolby Vision Probe" },
         { TemplateManager::KEY_EXTRACT_RPU,      "Extract RPU (DV7->8.1)" },
         { TemplateManager::KEY_ENCODE_SW,        "Encode 4K (Software)" },

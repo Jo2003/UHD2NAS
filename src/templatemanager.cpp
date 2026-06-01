@@ -11,9 +11,13 @@ TemplateManager::TemplateManager()
 
 void TemplateManager::initDefaults()
 {
-    // Crop detection: analyze ~1 minute, skip first 5 min
+    // Crop detection for SDR/FHD content
     m_templates[KEY_CROPDETECT] =
-        "{ffmpeg} -ss 300 -i {input} -t 60 -vf cropdetect=64:2:0 -an -f null - 2>&1";
+        "{ffmpeg} -ss 300 -i {input} -t 60 -vf cropdetect=24:2:0 -an -f null - 2>&1";
+
+    // Crop detection for HDR/4K content (limited range needs normalization)
+    m_templates[KEY_CROPDETECT_HDR] =
+        "{ffmpeg} -ss 300 -i {input} -t 60 -vf scale=in_range=limited:out_range=full,cropdetect=64:2:0 -an -f null - 2>&1";
 
     // Probe for Dolby Vision metadata
     m_templates[KEY_PROBE_DOVI] =

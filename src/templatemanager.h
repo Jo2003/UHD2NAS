@@ -38,7 +38,7 @@ public:
      * @brief Build ID (YYYYMMDD integer). When this changes, saved templates
      *        are considered outdated and replaced with new defaults.
      */
-    static constexpr int BUILD_ID = 20260603;
+    static constexpr int BUILD_ID = 20260604;
     /**
      * @brief Supported hardware encoder types.
      */
@@ -110,7 +110,8 @@ public:
 
     // --- Template Keys ---
 
-    static constexpr const char* KEY_CROPDETECT = "cropdetect";       ///< ffmpeg cropdetect filter command
+    static constexpr const char* KEY_CROPDETECT = "cropdetect";       ///< ffmpeg cropdetect for SDR/FHD
+    static constexpr const char* KEY_CROPDETECT_HDR = "cropdetect_hdr"; ///< ffmpeg cropdetect for HDR/4K
     static constexpr const char* KEY_PROBE_DOVI = "probe_dovi";       ///< ffprobe Dolby Vision detection
     static constexpr const char* KEY_EXTRACT_RPU = "extract_rpu";     ///< Extract RPU + convert Profile 7→8.1 + reset crop
     static constexpr const char* KEY_ENCODE_SW = "encode_sw";         ///< 4K UHD software encode (libx265)
