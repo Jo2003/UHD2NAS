@@ -133,6 +133,9 @@ void EncoderEngine::probeCodec()
 
 void EncoderEngine::onCropDetected(bool success)
 {
+    if (!m_running)
+        return; // aborted
+
     if (!success) {
         // Even on failure, let the user enter values manually
         CropInfo info;
