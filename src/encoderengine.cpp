@@ -19,12 +19,33 @@ EncoderEngine::EncoderEngine(QObject *parent) : QObject(parent)
     connect(m_doviProcessor, &DoviProcessor::logOutput, this, [this](const QString &data) {
         emit logOutput(data);
         // Parse ffmpeg frame progress during RPU extraction
-        if (m_currentStep == ExtractRpu && m_totalFrames > 0) {
-            QRegularExpression frameRe(R"(frame=\s*(\d+))");
-            auto match = frameRe.match(data);
-            if (match.hasMatch()) {
-                double currentFrame = match.captured(1).toDouble();
-                emit encodeProgress(qMin(100.0, (currentFrame / m_totalFrames) * 100.0));
+        if (m_currentStep == ExtractRpu) {
+            // Try to determine total frames from duration + fps
+            if (m_totalFrames == 0) {
+                QRegularExpression durRe(R"(Duration:\s*(\d+):(\d+):(\d+)\.(\d+))");
+                auto durMatch = durRe.match(data);
+                if (durMatch.hasMatch()) {
+                    m_duration = durMatch.captured(1).toDouble() * 3600 +
+                                 durMatch.captured(2).toDouble() * 60 +
+                                 durMatch.captured(3).toDouble() +
+                                 durMatch.captured(4).toDouble() / 100.0;
+                }
+                QRegularExpression fpsRe(R"((\d+(?:\.\d+)?)\s*fps)");
+                auto fpsMatch = fpsRe.match(data);
+                if (fpsMatch.hasMatch()) {
+                    m_fps = fpsMatch.captured(1).toDouble();
+                }
+                if (m_duration > 0 && m_fps > 0)
+                    m_totalFrames = m_duration * m_fps;
+            }
+
+            if (m_totalFrames > 0) {
+                QRegularExpression frameRe(R"(frame=\s*(\d+))");
+                auto match = frameRe.match(data);
+                if (match.hasMatch()) {
+                    double currentFrame = match.captured(1).toDouble();
+                    emit encodeProgress(qMin(100.0, (currentFrame / m_totalFrames) * 100.0));
+                }
             }
         }
     });
