@@ -16,7 +16,18 @@ EncoderEngine::EncoderEngine(QObject *parent) : QObject(parent)
     connect(m_cropDetector, &CropDetector::finished, this, &EncoderEngine::onCropDetected);
     connect(m_cropDetector, &CropDetector::logOutput, this, &EncoderEngine::logOutput);
     connect(m_doviProcessor, &DoviProcessor::stepFinished, this, &EncoderEngine::onDoviStepDone);
-    connect(m_doviProcessor, &DoviProcessor::logOutput, this, &EncoderEngine::logOutput);
+    connect(m_doviProcessor, &DoviProcessor::logOutput, this, [this](const QString &data) {
+        emit logOutput(data);
+        // Parse ffmpeg frame progress during RPU extraction
+        if (m_currentStep == ExtractRpu && m_totalFrames > 0) {
+            QRegularExpression frameRe(R"(frame=\s*(\d+))");
+            auto match = frameRe.match(data);
+            if (match.hasMatch()) {
+                double currentFrame = match.captured(1).toDouble();
+                emit encodeProgress(qMin(100.0, (currentFrame / m_totalFrames) * 100.0));
+            }
+        }
+    });
 }
 
 void EncoderEngine::setToolPaths(const QString &ffmpeg, const QString &ffprobe, const QString &doviTool, const QString &mkvmerge)
@@ -166,6 +177,7 @@ void EncoderEngine::startDoviExtract()
 {
     m_currentStep = ExtractRpu;
     emit stepProgress(2, m_totalSteps, "Extracting RPU (Profile 7 -> 8.1)...");
+    emit encodeProgress(0);
 
     QMap<QString, QString> vars = buildVars();
     QString cmd = TemplateManager::resolve(m_templates.getTemplate(TemplateManager::KEY_EXTRACT_RPU), vars);

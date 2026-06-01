@@ -161,9 +161,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         m_stepProgress->setMaximum(total);
         m_stepProgress->setValue(current);
         m_stepLabel->setText(desc);
-        // Encode step: determinate progress from frame count
-        // Non-encode steps: indeterminate (busy) animation
-        if (desc.contains("Encoding")) {
+        // Steps with frame-based progress: determinate mode
+        // Other steps: indeterminate (busy) animation
+        if (desc.contains("Encoding") || desc.contains("Extracting RPU")) {
             m_encodeProgress->setRange(0, 100);
             m_encodeProgress->setValue(0);
         } else {
