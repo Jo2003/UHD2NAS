@@ -111,6 +111,7 @@ void EncoderEngine::probeForDovi()
         }
 
         // Now probe codec to detect VC-1 (no HW decode support)
+        m_activeProcess = nullptr;
         probe->deleteLater();
         probeCodec();
     });
@@ -158,6 +159,7 @@ void EncoderEngine::probeCodec()
         emit stepProgress(1, m_totalSteps, "Detecting crop...");
         m_cropDetector->detect(m_ffmpegPath, m_inputFile, cropTemplate);
 
+        m_activeProcess = nullptr;
         probe->deleteLater();
     });
 
