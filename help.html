@@ -121,10 +121,11 @@
 <p>UHD2NAS re-encodes MKV files from Blu-ray or 4K Ultra HD Blu-ray discs into space-efficient HEVC 10-bit files suitable for NAS storage and streaming to media players.</p>
 <p>The application automatically handles:</p>
 <ul>
-  <li><strong>Crop detection</strong> &ndash; removes black bars</li>
+  <li><strong>Crop detection</strong> &ndash; removes black bars (with manual confirmation/override)</li>
   <li><strong>Dolby Vision</strong> conversion (Profile 7 &rarr; 8.1) for 4K UHD sources</li>
   <li><strong>HDR metadata</strong> preservation for 4K content</li>
-  <li><strong>Audio and subtitles</strong> are copied without re-encoding</li>
+  <li><strong>Audio, subtitles, chapters, and attachments</strong> (cover art) are copied without re-encoding</li>
+  <li><strong>VC-1 codec detection</strong> &ndash; automatically uses SW decode when HW decode is unsupported</li>
 </ul>
 
 <hr>
@@ -134,7 +135,7 @@
 <h3>Files</h3>
 <ul>
   <li><strong>Source MKV</strong> &ndash; Select the original MKV file (ripped from Blu-ray via MakeMKV).</li>
-  <li><strong>Target MKV</strong> &ndash; The output file path. Automatically suggested when you pick a source file. If the target already exists, you will be asked to confirm overwrite.</li>
+  <li><strong>Target MKV</strong> &ndash; The output file path. Automatically suggested when you pick a source file. If the target already exists, you will be asked to confirm overwrite when you click Start.</li>
 </ul>
 
 <h3>Encoder Settings</h3>
@@ -147,20 +148,36 @@
       <li><strong>AMD AMF</strong> &ndash; Hardware encoder using AMD GPU.</li>
     </ul>
   </li>
-  <li><strong>Quality</strong> &ndash; Slider from 18 (best quality, larger file) to 25 (lower quality, smaller file). Recommended: 20 for 4K, 22&ndash;23 for Full HD.</li>
+  <li><strong>Quality</strong> &ndash; Slider from 15 (best quality, larger file) to 30 (lower quality, smaller file). Recommended: 20 for 4K, 22&ndash;23 for Full HD.</li>
 </ul>
 
 <h3>Progress</h3>
 <ul>
-  <li><strong>Step Progress</strong> &ndash; Shows which step of the workflow is currently active (e.g., crop detection, encoding, Dolby Vision injection).</li>
-  <li><strong>Encode Progress</strong> &ndash; Shows the encoding progress as a percentage based on frames processed.</li>
+  <li><strong>Overall Progress</strong> &ndash; Shows which step of the workflow is currently active (e.g., crop detection, encoding, Dolby Vision injection).</li>
+  <li><strong>Current Step</strong> &ndash; Shows the progress of the current step:
+    <ul>
+      <li>Encoding and RPU extraction: frame-based percentage (0&ndash;100%).</li>
+      <li>Final mux (mkvmerge): percentage from mkvmerge output.</li>
+      <li>Other steps (probing, inject): animated indeterminate progress bar.</li>
+    </ul>
+  </li>
 </ul>
+
+<h3>Crop Confirmation</h3>
+<p>After crop detection completes, a dialog shows the detected crop values (Width, Height, X, Y) in editable fields. You can:</p>
+<ul>
+  <li><strong>Accept</strong> the detected values (auto-accepted after 60 seconds).</li>
+  <li><strong>Edit</strong> any value manually (stops the auto-accept timer).</li>
+  <li><strong>Cancel</strong> to abort the entire encoding process.</li>
+</ul>
+<p>If crop detection fails (e.g., very dark films), the dialog still appears so you can enter values manually.</p>
 
 <h3>Buttons</h3>
 <ul>
-  <li><strong>Start</strong> &ndash; Begin the encoding process. Disabled while encoding is in progress.</li>
-  <li><strong>Abort</strong> &ndash; Cancel the current operation. Temporary files are cleaned up.</li>
-  <li><strong>Quit</strong> &ndash; Exit the application.</li>
+  <li><strong>Start</strong> &ndash; Begin the encoding process. Checks for target file overwrite.</li>
+  <li><strong>Abort</strong> &ndash; Cancel the current operation. All child processes (ffmpeg, dovi_tool, mkvmerge) are killed.</li>
+  <li><strong>Save Log</strong> &ndash; Save the log output to a text file.</li>
+  <li><strong>Quit</strong> &ndash; Exit the application (kills any running processes).</li>
 </ul>
 
 <h3>Log Output</h3>
@@ -169,7 +186,7 @@
 <hr>
 
 <h2>Settings</h2>
-<p>Access via the <strong>Settings...</strong> menu entry.</p>
+<p>Access via the <strong>Settings</strong> menu entry.</p>
 
 <h3>Tool Paths Tab</h3>
 <p>Configure the paths to the required external tools:</p>
@@ -182,7 +199,7 @@
 <p>Download links are provided if you need to obtain the tools.</p>
 
 <h3>Command Templates Tab</h3>
-<p>All tool commands are stored as editable templates with <code>{placeholder}</code> variables. Advanced users can modify these to adjust encoding parameters without recompiling.</p>
+<p>All tool commands are stored as editable templates with <code>{placeholder}</code> variables. Select a template from the list to edit it in the text area below. Placeholders are highlighted in <strong style="color:purple;">violet</strong>.</p>
 
 <p>Available placeholders:</p>
 <table>
@@ -206,7 +223,13 @@
   <tr><td><code>{fps}</code></td><td>Detected source framerate (e.g. 23.976)</td></tr>
 </table>
 
-<p>Click <strong>Reset to Defaults</strong> to restore all templates to their original values.</p>
+<p>Template management buttons:</p>
+<ul>
+  <li><strong>Save Template</strong> &ndash; Save the currently edited template.</li>
+  <li><strong>Export All...</strong> &ndash; Export all templates to a JSON file (for backup or sharing).</li>
+  <li><strong>Import...</strong> &ndash; Import templates from a JSON file.</li>
+  <li><strong>Reset All to Defaults</strong> &ndash; Restore all templates to their original values.</li>
+</ul>
 
 <hr>
 
@@ -214,24 +237,30 @@
 
 <h3>Full HD Blu-ray (1080p, SDR)</h3>
 <ol>
-  <li>Crop detection (black bar removal)</li>
-  <li>Encode to HEVC 10-bit with audio/subtitle copy</li>
+  <li>Probe for Dolby Vision and codec detection</li>
+  <li>Crop detection (3 min sample from 5:00) + user confirmation</li>
+  <li>Encode to HEVC 10-bit with audio/subtitle/chapter/attachment copy</li>
 </ol>
 
 <h3>4K UHD Blu-ray without Dolby Vision</h3>
 <ol>
-  <li>Crop detection</li>
-  <li>Encode to HEVC 10-bit with HDR metadata + audio/subtitle copy</li>
+  <li>Probe for Dolby Vision and codec detection</li>
+  <li>Crop detection + user confirmation</li>
+  <li>Encode to HEVC 10-bit with HDR metadata + audio/subtitle/chapter/attachment copy</li>
 </ol>
 
 <h3>4K UHD Blu-ray with Dolby Vision (Profile 7)</h3>
 <ol>
-  <li>Crop detection</li>
+  <li>Probe for Dolby Vision and codec detection</li>
+  <li>Crop detection + user confirmation</li>
   <li>Extract RPU, convert Profile 7 &rarr; 8.1, and reset crop offsets (<code>-m 2 -c</code>)</li>
   <li>Encode video (HEVC 10-bit, video only)</li>
   <li>Inject RPU into encoded stream</li>
-  <li>Final mux (combine video with original audio and subtitles)</li>
+  <li>Final mux (combine video with original audio, subtitles, chapters, and attachments)</li>
 </ol>
+
+<h3>VC-1 Sources (some Full HD Blu-rays)</h3>
+<p>When a VC-1 video codec is detected, the application automatically uses software decoding with hardware encoding (SWDEC templates), since hardware decoders typically do not support VC-1. The <code>-fflags +genpts</code> flag ensures correct A/V synchronization.</p>
 
 <hr>
 
@@ -243,6 +272,8 @@
   <li><strong>NVEnc preset p7</strong> gives the best quality from NVIDIA hardware at the cost of some speed.</li>
   <li>Files with spaces in the name are fully supported.</li>
   <li>The application detects whether the source is Full HD or 4K automatically based on the crop dimensions.</li>
+  <li>Window size and position are remembered between sessions.</li>
+  <li>The crop confirmation dialog auto-accepts after 60 seconds if you don't edit any values.</li>
 </ul>
 
 <hr>
