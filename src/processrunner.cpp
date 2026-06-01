@@ -3,6 +3,9 @@
 
 #ifdef Q_OS_WIN
 #include <windows.h>
+#else
+#include <signal.h>
+#include <unistd.h>
 #endif
 
 ProcessRunner::ProcessRunner(QObject *parent) : QObject(parent) {}
@@ -47,6 +50,10 @@ void ProcessRunner::startProcess(QProcess *proc, const QString &cmd)
 #else
     proc->setProgram("sh");
     proc->setArguments(QStringList() << "-c" << cmd);
+    // Create new process group so we can kill all children
+    proc->setChildProcessModifier([]() {
+        ::setsid();
+    });
 #endif
 }
 
@@ -129,7 +136,18 @@ void ProcessRunner::abort()
 {
     foreach (QProcess *proc, m_processes) {
         if (proc->state() != QProcess::NotRunning) {
+#ifdef Q_OS_WIN
+            // On Windows, kill the entire process tree (cmd.exe + child ffmpeg etc.)
+            qint64 pid = proc->processId();
+            if (pid > 0) {
+                QProcess::startDetached("taskkill", QStringList() << "/T" << "/F" << "/PID" << QString::number(pid));
+            }
+#else
+            // On Unix, kill the process group
+            ::kill(-proc->processId(), SIGTERM);
+#endif
             proc->kill();
+            proc->waitForFinished(3000);
         }
     }
     cleanup();
