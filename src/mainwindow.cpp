@@ -20,6 +20,7 @@
 #include <QDialog>
 #include <QDialogButtonBox>
 #include <QIntValidator>
+#include <QTimer>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -310,9 +311,36 @@ void MainWindow::onCropReady(const CropInfo &info)
     }
 
     auto *btnBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    auto *okBtn = btnBox->button(QDialogButtonBox::Ok);
     layout->addRow(btnBox);
     connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
     connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    // Auto-accept timer with countdown on OK button
+    int secondsLeft = 60;
+    okBtn->setText(QString("OK (%1)").arg(secondsLeft));
+    auto *timer = new QTimer(&dlg);
+    timer->setInterval(1000);
+    connect(timer, &QTimer::timeout, &dlg, [&dlg, okBtn, &secondsLeft, timer]() {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+            timer->stop();
+            dlg.accept();
+        } else {
+            okBtn->setText(QString("OK (%1)").arg(secondsLeft));
+        }
+    });
+    timer->start();
+
+    // Stop timer when user edits any field
+    auto stopTimer = [timer, okBtn]() {
+        timer->stop();
+        okBtn->setText("OK");
+    };
+    connect(wEdit, &QLineEdit::textEdited, &dlg, stopTimer);
+    connect(hEdit, &QLineEdit::textEdited, &dlg, stopTimer);
+    connect(xEdit, &QLineEdit::textEdited, &dlg, stopTimer);
+    connect(yEdit, &QLineEdit::textEdited, &dlg, stopTimer);
 
     if (dlg.exec() == QDialog::Accepted) {
         CropInfo confirmed;
