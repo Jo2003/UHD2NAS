@@ -313,17 +313,27 @@ void EncoderEngine::startFinalMux()
 {
     m_currentStep = MuxFinal;
     emit stepProgress(5, m_totalSteps, "Final muxing (video + audio + subtitles)...");
+    emit encodeProgress(0);
 
     QMap<QString, QString> vars = buildVars();
     QString cmd = TemplateManager::resolve(m_templates.getTemplate(TemplateManager::KEY_MUXFINAL), vars);
     logCmd(cmd);
 
     auto *mux = new ProcessRunner(this);
-    connect(mux, &ProcessRunner::outputReady, this, &EncoderEngine::logOutput);
+    connect(mux, &ProcessRunner::outputReady, this, [this](const QString &data) {
+        emit logOutput(data);
+        // mkvmerge outputs "Progress: 45%"
+        QRegularExpression progressRe(R"(Progress:\s*(\d+)%)");
+        auto match = progressRe.match(data);
+        if (match.hasMatch()) {
+            emit encodeProgress(match.captured(1).toDouble());
+        }
+    });
     connect(mux, &ProcessRunner::finished, this, [this, mux](int exitCode) {
         mux->deleteLater();
         m_running = false;
         if (exitCode == 0) {
+            emit encodeProgress(100.0);
             emit finished(true, "Dolby Vision 8.1 encode completed successfully");
         } else {
             emit finished(false, "Final muxing failed");

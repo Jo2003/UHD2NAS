@@ -163,7 +163,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         m_stepLabel->setText(desc);
         // Steps with frame-based progress: determinate mode
         // Other steps: indeterminate (busy) animation
-        if (desc.contains("Encoding") || desc.contains("Extracting RPU")) {
+        if (desc.contains("Encoding") || desc.contains("Extracting RPU") || desc.contains("Final muxing")) {
             m_encodeProgress->setRange(0, 100);
             m_encodeProgress->setValue(0);
         } else {
