@@ -88,6 +88,7 @@ void EncoderEngine::probeForDovi()
     emit logOutput("Probing input for Dolby Vision metadata...\n");
 
     auto *probe = new ProcessRunner(this);
+    m_activeProcess = probe;
     auto *probeOutput = new QString();
 
     connect(probe, &ProcessRunner::outputReady, this, [probeOutput](const QString &data) {
@@ -123,6 +124,7 @@ void EncoderEngine::probeForDovi()
 void EncoderEngine::probeCodec()
 {
     auto *probe = new ProcessRunner(this);
+    m_activeProcess = probe;
     auto *probeOutput = new QString();
 
     connect(probe, &ProcessRunner::outputReady, this, [probeOutput](const QString &data) {
@@ -358,6 +360,7 @@ void EncoderEngine::startFinalMux()
     logCmd(cmd);
 
     auto *mux = new ProcessRunner(this);
+    m_activeProcess = mux;
     connect(mux, &ProcessRunner::outputReady, this, [this](const QString &data) {
         emit logOutput(data);
         // mkvmerge outputs "Progress: 45%" or localized "Fortschritt: 45%"
@@ -368,6 +371,7 @@ void EncoderEngine::startFinalMux()
         }
     });
     connect(mux, &ProcessRunner::finished, this, [this, mux](int exitCode) {
+        m_activeProcess = nullptr;
         mux->deleteLater();
         m_running = false;
         if (exitCode == 0) {
@@ -424,6 +428,10 @@ void EncoderEngine::abort()
     m_doviProcessor->abort();
     if (m_encodeProcess) {
         m_encodeProcess->abort();
+    }
+    if (m_activeProcess) {
+        m_activeProcess->abort();
+        m_activeProcess = nullptr;
     }
     emit finished(false, "Aborted by user");
 }

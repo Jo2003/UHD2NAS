@@ -140,13 +140,13 @@ void ProcessRunner::abort()
             // On Windows, kill the entire process tree (cmd.exe + child ffmpeg etc.)
             qint64 pid = proc->processId();
             if (pid > 0) {
-                QProcess::startDetached("taskkill", QStringList() << "/T" << "/F" << "/PID" << QString::number(pid));
+                QProcess::execute("taskkill", QStringList() << "/T" << "/F" << "/PID" << QString::number(pid));
             }
 #else
             // On Unix, kill the process group
             ::kill(-proc->processId(), SIGTERM);
-#endif
             proc->kill();
+#endif
             proc->waitForFinished(3000);
         }
     }

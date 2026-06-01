@@ -189,6 +189,7 @@ private:
     CropDetector *m_cropDetector = nullptr;   ///< Crop detection handler.
     DoviProcessor *m_doviProcessor = nullptr; ///< Dolby Vision processing handler.
     ProcessRunner *m_encodeProcess = nullptr; ///< Main encode process.
+    ProcessRunner *m_activeProcess = nullptr; ///< Currently running process (for abort).
 
     CropInfo m_cropInfo;    ///< Detected crop values.
     bool m_hasDovi = false; ///< True if source has Dolby Vision Profile 7.
