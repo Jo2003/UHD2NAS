@@ -17,6 +17,9 @@
 #include <QUrl>
 #include <QDateTime>
 #include <QDir>
+#include <QDialog>
+#include <QDialogButtonBox>
+#include <QIntValidator>
 
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -107,12 +110,12 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     m_stepLabel = new QLabel("Ready");
     progressLayout->addWidget(m_stepLabel);
 
-    progressLayout->addWidget(new QLabel("Step Progress:"));
+    progressLayout->addWidget(new QLabel("Overall Progress:"));
     m_stepProgress = new QProgressBar();
     m_stepProgress->setRange(0, 100);
     progressLayout->addWidget(m_stepProgress);
 
-    progressLayout->addWidget(new QLabel("Encode Progress:"));
+    progressLayout->addWidget(new QLabel("Current Step:"));
     m_encodeProgress = new QProgressBar();
     m_encodeProgress->setRange(0, 100);
     progressLayout->addWidget(m_encodeProgress);
@@ -158,10 +161,19 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
         m_stepProgress->setMaximum(total);
         m_stepProgress->setValue(current);
         m_stepLabel->setText(desc);
+        // Encode step: determinate progress from frame count
+        // Non-encode steps: indeterminate (busy) animation
+        if (desc.contains("Encoding")) {
+            m_encodeProgress->setRange(0, 100);
+            m_encodeProgress->setValue(0);
+        } else {
+            m_encodeProgress->setRange(0, 0); // indeterminate mode
+        }
     });
     connect(m_engine, &EncoderEngine::encodeProgress, this, [this](double pct) {
         m_encodeProgress->setValue(static_cast<int>(pct));
     });
+    connect(m_engine, &EncoderEngine::cropReady, this, &MainWindow::onCropReady);
     connect(m_engine, &EncoderEngine::logOutput, this, [this](const QString &line) {
         m_logView->append(line.trimmed());
     });
@@ -251,6 +263,8 @@ void MainWindow::onAbort()
 
 void MainWindow::onFinished(bool success, const QString &message)
 {
+    m_encodeProgress->setRange(0, 100);
+    m_encodeProgress->setValue(success ? 100 : 0);
     m_startBtn->setEnabled(true);
     m_abortBtn->setEnabled(false);
     m_sourceEdit->setEnabled(true);
@@ -262,6 +276,61 @@ void MainWindow::onFinished(bool success, const QString &message)
         QMessageBox::information(this, "Done", message);
     } else {
         QMessageBox::critical(this, "Error", message);
+    }
+}
+
+void MainWindow::onCropReady(const CropInfo &info)
+{
+    m_encodeProgress->setRange(0, 100);
+    m_encodeProgress->setValue(0);
+
+    QDialog dlg(this);
+    dlg.setWindowTitle("Confirm Crop Values");
+    auto *layout = new QFormLayout(&dlg);
+
+    auto *wEdit = new QLineEdit(QString::number(info.w));
+    auto *hEdit = new QLineEdit(QString::number(info.h));
+    auto *xEdit = new QLineEdit(QString::number(info.x));
+    auto *yEdit = new QLineEdit(QString::number(info.y));
+
+    // Only allow digits
+    QIntValidator *val = new QIntValidator(0, 9999, &dlg);
+    wEdit->setValidator(val);
+    hEdit->setValidator(val);
+    xEdit->setValidator(val);
+    yEdit->setValidator(val);
+
+    layout->addRow("Width:", wEdit);
+    layout->addRow("Height:", hEdit);
+    layout->addRow("X Offset:", xEdit);
+    layout->addRow("Y Offset:", yEdit);
+
+    if (!info.valid) {
+        layout->addRow(new QLabel("<b>Crop detection failed. Please enter values manually.</b>"));
+    }
+
+    auto *btnBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
+    layout->addRow(btnBox);
+    connect(btnBox, &QDialogButtonBox::accepted, &dlg, &QDialog::accept);
+    connect(btnBox, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
+
+    if (dlg.exec() == QDialog::Accepted) {
+        CropInfo confirmed;
+        confirmed.w = wEdit->text().toInt();
+        confirmed.h = hEdit->text().toInt();
+        confirmed.x = xEdit->text().toInt();
+        confirmed.y = yEdit->text().toInt();
+        // Recalculate cropTop/cropBottom for DV (assumes 2160p source for 4K)
+        if (confirmed.w > 1920) {
+            confirmed.cropTop = confirmed.y;
+            confirmed.cropBottom = 2160 - confirmed.h - confirmed.y;
+        }
+        confirmed.valid = true;
+        m_engine->confirmCrop(confirmed);
+    } else {
+        // User cancelled - abort
+        m_engine->abort();
+        onFinished(false, "Aborted by user (crop confirmation cancelled)");
     }
 }
 

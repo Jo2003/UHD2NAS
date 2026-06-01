@@ -108,6 +108,12 @@ public:
     void abort();
 
     /**
+     * @brief Continue the pipeline after user confirms/edits crop values.
+     * @param info The (possibly modified) crop info to use.
+     */
+    void confirmCrop(const CropInfo &info);
+
+    /**
      * @brief Returns the total number of steps in the current workflow.
      * @return Step count (2 for simple encode, 6 for full DV pipeline).
      */
@@ -143,6 +149,12 @@ signals:
      * @param message Human-readable result description.
      */
     void finished(bool success, const QString &message);
+
+    /**
+     * @brief Emitted after crop detection so the UI can confirm/edit values.
+     * @param info Detected crop values.
+     */
+    void cropReady(const CropInfo &info);
 
 private slots:
     void onCropDetected(bool success);

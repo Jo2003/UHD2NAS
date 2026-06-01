@@ -73,6 +73,8 @@ private slots:
      * @param message Result description for the user.
      */
     void onFinished(bool success, const QString &message);
+    /** @brief Show crop confirmation dialog. */
+    void onCropReady(const CropInfo &info);
 
 private:
     /** @brief Load tool paths from QSettings. */

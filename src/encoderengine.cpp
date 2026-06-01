@@ -123,13 +123,26 @@ void EncoderEngine::probeCodec()
 void EncoderEngine::onCropDetected(bool success)
 {
     if (!success) {
-        m_running = false;
-        emit finished(false, "Crop detection failed");
+        // Even on failure, let the user enter values manually
+        CropInfo info;
+        info.valid = false;
+        emit cropReady(info);
         return;
     }
 
     m_cropInfo = m_cropDetector->result();
     emit logOutput(QString("Crop detected: %1:%2:%3:%4\n")
+                       .arg(m_cropInfo.w).arg(m_cropInfo.h).arg(m_cropInfo.x).arg(m_cropInfo.y));
+
+    emit cropReady(m_cropInfo);
+}
+
+void EncoderEngine::confirmCrop(const CropInfo &info)
+{
+    m_cropInfo = info;
+    m_cropInfo.valid = true;
+
+    emit logOutput(QString("Crop confirmed: %1:%2:%3:%4\n")
                        .arg(m_cropInfo.w).arg(m_cropInfo.h).arg(m_cropInfo.x).arg(m_cropInfo.y));
 
     // Determine if this is FullHD or 4K based on crop dimensions
