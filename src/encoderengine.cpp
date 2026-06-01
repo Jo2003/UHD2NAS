@@ -322,6 +322,9 @@ void EncoderEngine::onEncodeFinished(int exitCode, QProcess::ExitStatus)
     m_encodeProcess->deleteLater();
     m_encodeProcess = nullptr;
 
+    if (!m_running)
+        return; // aborted
+
     if (exitCode != 0) {
         m_running = false;
         emit finished(false, "Encoding failed with exit code " + QString::number(exitCode));

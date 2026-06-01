@@ -136,11 +136,15 @@ void ProcessRunner::abort()
 {
     foreach (QProcess *proc, m_processes) {
         if (proc->state() != QProcess::NotRunning) {
+            // Disconnect all signals to prevent handlers firing during kill
+            proc->disconnect();
 #ifdef Q_OS_WIN
             // On Windows, kill the entire process tree (cmd.exe + child ffmpeg etc.)
             qint64 pid = proc->processId();
             if (pid > 0) {
-                QProcess::execute("taskkill", QStringList() << "/T" << "/F" << "/PID" << QString::number(pid));
+                QProcess killer;
+                killer.start("taskkill", QStringList() << "/T" << "/F" << "/PID" << QString::number(pid));
+                killer.waitForFinished(5000);
             }
 #else
             // On Unix, kill the process group
