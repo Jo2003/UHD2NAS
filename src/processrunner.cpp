@@ -1,9 +1,7 @@
 #include "processrunner.h"
 #include <QRegularExpression>
 
-#ifdef Q_OS_WIN
-#include <windows.h>
-#else
+#ifndef Q_OS_WIN
 #include <signal.h>
 #include <unistd.h>
 #endif
@@ -41,15 +39,38 @@ QStringList ProcessRunner::splitPipe(const QString &command)
 
 void ProcessRunner::startProcess(QProcess *proc, const QString &cmd)
 {
+    // Strip trailing shell redirects (2>&1) - QProcess captures both channels natively
+    QString cleaned = cmd.trimmed();
+    cleaned.remove(QRegularExpression(R"(\s*2>&1\s*$)"));
+
 #ifdef Q_OS_WIN
-    // On Windows, use cmd.exe with /c. The entire command must be wrapped
-    // in an extra pair of quotes so cmd.exe correctly handles inner quoted paths.
-    // We use setNativeArguments to prevent Qt from re-escaping the quotes.
-    proc->setProgram("cmd.exe");
-    proc->setNativeArguments("/c \"" + cmd + "\"");
+    // On Windows, run the executable directly (no cmd.exe wrapper).
+    // Use setNativeArguments so Qt does not re-escape quotes.
+    // Extract the program (first token, possibly quoted) and pass rest as native args.
+    QString program;
+    QString args;
+    if (cleaned.startsWith('"')) {
+        int end = cleaned.indexOf('"', 1);
+        if (end > 0) {
+            program = cleaned.mid(1, end - 1);
+            args = cleaned.mid(end + 1).trimmed();
+        } else {
+            program = cleaned;
+        }
+    } else {
+        int space = cleaned.indexOf(' ');
+        if (space > 0) {
+            program = cleaned.left(space);
+            args = cleaned.mid(space + 1).trimmed();
+        } else {
+            program = cleaned;
+        }
+    }
+    proc->setProgram(program);
+    proc->setNativeArguments(args);
 #else
     proc->setProgram("sh");
-    proc->setArguments(QStringList() << "-c" << cmd);
+    proc->setArguments(QStringList() << "-c" << cleaned);
     // Create new process group so we can kill all children
     proc->setChildProcessModifier([]() {
         ::setsid();
@@ -136,21 +157,12 @@ void ProcessRunner::abort()
 {
     foreach (QProcess *proc, m_processes) {
         if (proc->state() != QProcess::NotRunning) {
-            // Disconnect all signals to prevent handlers firing during kill
             proc->disconnect();
-#ifdef Q_OS_WIN
-            // On Windows, kill the entire process tree (cmd.exe + child ffmpeg etc.)
-            qint64 pid = proc->processId();
-            if (pid > 0) {
-                QProcess killer;
-                killer.start("taskkill", QStringList() << "/T" << "/F" << "/PID" << QString::number(pid));
-                killer.waitForFinished(5000);
-            }
-#else
+#ifndef Q_OS_WIN
             // On Unix, kill the process group
             ::kill(-proc->processId(), SIGTERM);
-            proc->kill();
 #endif
+            proc->kill();
             proc->waitForFinished(3000);
         }
     }
