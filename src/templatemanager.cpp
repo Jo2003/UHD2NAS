@@ -13,7 +13,7 @@ void TemplateManager::initDefaults()
 {
     // Crop detection: analyze ~1 minute, skip first 5 min
     m_templates[KEY_CROPDETECT] =
-        "{ffmpeg} -ss 300 -i {input} -t 180 -vf cropdetect=64:2:0 -an -f null - 2>&1";
+        "{ffmpeg} -ss 300 -i {input} -t 60 -vf cropdetect=64:2:0 -an -f null - 2>&1";
 
     // Probe for Dolby Vision metadata
     m_templates[KEY_PROBE_DOVI] =
