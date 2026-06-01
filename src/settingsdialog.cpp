@@ -12,12 +12,36 @@
 #include <QTabWidget>
 #include <QHeaderView>
 #include <QMessageBox>
+#include <QRegularExpression>
+#include <QFont>
+#include <QFontDatabase>
+
+// --- PlaceholderHighlighter ---
+
+PlaceholderHighlighter::PlaceholderHighlighter(QTextDocument *parent)
+    : QSyntaxHighlighter(parent) {}
+
+void PlaceholderHighlighter::highlightBlock(const QString &text)
+{
+    QTextCharFormat fmt;
+    fmt.setForeground(QColor(128, 0, 128)); // violet
+    fmt.setFontWeight(QFont::Bold);
+
+    QRegularExpression re(R"(\{[^}]+\})");
+    auto it = re.globalMatch(text);
+    while (it.hasNext()) {
+        auto match = it.next();
+        setFormat(match.capturedStart(), match.capturedLength(), fmt);
+    }
+}
+
+// --- SettingsDialog ---
 
 SettingsDialog::SettingsDialog(TemplateManager *templates, QWidget *parent)
     : QDialog(parent), m_templates(templates)
 {
     setWindowTitle("Settings");
-    setMinimumSize(700, 500);
+    setMinimumSize(800, 600);
 
     auto *layout = new QVBoxLayout(this);
 
@@ -76,21 +100,43 @@ SettingsDialog::SettingsDialog(TemplateManager *templates, QWidget *parent)
     auto *tmplPage = new QWidget();
     auto *tmplLayout = new QVBoxLayout(tmplPage);
 
-    tmplLayout->addWidget(new QLabel("Edit command templates. Use {placeholders} for variables."));
+    tmplLayout->addWidget(new QLabel("Select a template to edit:"));
 
     m_templateTable = new QTableWidget();
-    m_templateTable->setColumnCount(2);
-    m_templateTable->setHorizontalHeaderLabels({"Key", "Command Template"});
+    m_templateTable->setColumnCount(1);
+    m_templateTable->setHorizontalHeaderLabels({"Template"});
     m_templateTable->horizontalHeader()->setStretchLastSection(true);
-    m_templateTable->horizontalHeader()->setSectionResizeMode(0, QHeaderView::ResizeToContents);
     m_templateTable->setSelectionBehavior(QAbstractItemView::SelectRows);
+    m_templateTable->setSelectionMode(QAbstractItemView::SingleSelection);
+    m_templateTable->setEditTriggers(QAbstractItemView::NoEditTriggers);
     tmplLayout->addWidget(m_templateTable, 1);
 
+    // Placeholder info
+    m_placeholderLabel = new QLabel(
+        "Placeholders: {ffmpeg} {ffprobe} {dovi_tool} {mkvmerge} {input} {output} "
+        "{crf} {crop_w} {crop_h} {crop_x} {crop_y} {rpu_file} {encoded_hevc} {injected_hevc}");
+    m_placeholderLabel->setWordWrap(true);
+    m_placeholderLabel->setStyleSheet("color: purple; font-style: italic;");
+    tmplLayout->addWidget(m_placeholderLabel);
+
+    // Template editor
+    m_templateEdit = new QTextEdit();
+    m_templateEdit->setMinimumHeight(100);
+    QFont monoFont = QFontDatabase::systemFont(QFontDatabase::FixedFont);
+    monoFont.setPointSize(9);
+    m_templateEdit->setFont(monoFont);
+    new PlaceholderHighlighter(m_templateEdit->document());
+    tmplLayout->addWidget(m_templateEdit, 1);
+
+    // Template buttons
     auto *tmplBtnLayout = new QHBoxLayout();
-    auto *resetBtn = new QPushButton("Reset to Defaults");
+    auto *saveTemplateBtn = new QPushButton("Save Template");
+    auto *resetBtn = new QPushButton("Reset All to Defaults");
+    connect(saveTemplateBtn, &QPushButton::clicked, this, &SettingsDialog::saveCurrentTemplate);
     connect(resetBtn, &QPushButton::clicked, this, &SettingsDialog::resetTemplates);
-    tmplBtnLayout->addWidget(resetBtn);
+    tmplBtnLayout->addWidget(saveTemplateBtn);
     tmplBtnLayout->addStretch();
+    tmplBtnLayout->addWidget(resetBtn);
     tmplLayout->addLayout(tmplBtnLayout);
 
     tabs->addTab(tmplPage, "Command Templates");
@@ -98,6 +144,7 @@ SettingsDialog::SettingsDialog(TemplateManager *templates, QWidget *parent)
     // --- Dialog Buttons ---
     auto *buttons = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel);
     connect(buttons, &QDialogButtonBox::accepted, this, [this]() {
+        saveCurrentTemplate(); // save any pending edit
         applyTemplates();
         accept();
     });
@@ -105,6 +152,39 @@ SettingsDialog::SettingsDialog(TemplateManager *templates, QWidget *parent)
     layout->addWidget(buttons);
 
     populateTemplates();
+
+    // Connect table selection
+    connect(m_templateTable, &QTableWidget::currentCellChanged,
+            this, [this](int row, int, int, int) { onTemplateSelected(row); });
+
+    // Select first row
+    if (m_templateTable->rowCount() > 0) {
+        m_templateTable->selectRow(0);
+        onTemplateSelected(0);
+    }
+}
+
+void SettingsDialog::onTemplateSelected(int row)
+{
+    // Save previous template before switching
+    saveCurrentTemplate();
+
+    m_currentTemplateRow = row;
+    if (row >= 0 && row < m_templateTable->rowCount()) {
+        QString key = m_templateTable->item(row, 0)->data(Qt::UserRole).toString();
+        m_templateEdit->setPlainText(m_templates->getTemplate(key));
+    }
+}
+
+void SettingsDialog::saveCurrentTemplate()
+{
+    if (m_currentTemplateRow < 0 || m_currentTemplateRow >= m_templateTable->rowCount())
+        return;
+
+    QString key = m_templateTable->item(m_currentTemplateRow, 0)->data(Qt::UserRole).toString();
+    QString val = m_templateEdit->toPlainText().trimmed();
+    // Store in templates (will be persisted on dialog OK)
+    m_templates->setTemplate(key, val);
 }
 
 void SettingsDialog::browse(QLineEdit *edit)
@@ -115,35 +195,34 @@ void SettingsDialog::browse(QLineEdit *edit)
 
 void SettingsDialog::populateTemplates()
 {
-    // Get all template keys and values
     struct Entry { const char* key; const char* desc; };
     static const Entry entries[] = {
-        { TemplateManager::KEY_CROPDETECT,     "Crop Detection" },
-        { TemplateManager::KEY_PROBE_DOVI,     "Dolby Vision Probe" },
-        { TemplateManager::KEY_EXTRACT_RPU,    "Extract RPU (DV7->8.1)" },
-        { TemplateManager::KEY_ENCODE_SW,      "Encode 4K (Software)" },
-        { TemplateManager::KEY_ENCODE_QSV,     "Encode 4K (QuickSync)" },
-        { TemplateManager::KEY_ENCODE_NVENC,   "Encode 4K (NVEnc)" },
-        { TemplateManager::KEY_ENCODE_AMF,     "Encode 4K (AMF)" },
-        { TemplateManager::KEY_ENCODE_SW_FHD,  "Encode FHD (Software)" },
-        { TemplateManager::KEY_ENCODE_QSV_FHD, "Encode FHD (QuickSync)" },
+        { TemplateManager::KEY_CROPDETECT,       "Crop Detection" },
+        { TemplateManager::KEY_PROBE_DOVI,       "Dolby Vision Probe" },
+        { TemplateManager::KEY_EXTRACT_RPU,      "Extract RPU (DV7->8.1)" },
+        { TemplateManager::KEY_ENCODE_SW,        "Encode 4K (Software)" },
+        { TemplateManager::KEY_ENCODE_QSV,       "Encode 4K (QuickSync)" },
+        { TemplateManager::KEY_ENCODE_NVENC,     "Encode 4K (NVEnc)" },
+        { TemplateManager::KEY_ENCODE_AMF,       "Encode 4K (AMF)" },
+        { TemplateManager::KEY_ENCODE_SW_FHD,    "Encode FHD (Software)" },
+        { TemplateManager::KEY_ENCODE_QSV_FHD,   "Encode FHD (QuickSync)" },
         { TemplateManager::KEY_ENCODE_NVENC_FHD, "Encode FHD (NVEnc)" },
-        { TemplateManager::KEY_ENCODE_AMF_FHD, "Encode FHD (AMF)" },
-        { TemplateManager::KEY_INJECT_DOVI,    "Inject RPU" },
-        { TemplateManager::KEY_MUXFINAL,       "Final Mux" },
+        { TemplateManager::KEY_ENCODE_AMF_FHD,   "Encode FHD (AMF)" },
+        { TemplateManager::KEY_ENCODE_QSV_SWDEC, "Encode FHD QSV (SW Decode)" },
+        { TemplateManager::KEY_ENCODE_NVENC_SWDEC, "Encode FHD NVEnc (SW Decode)" },
+        { TemplateManager::KEY_ENCODE_AMF_SWDEC, "Encode FHD AMF (SW Decode)" },
+        { TemplateManager::KEY_INJECT_DOVI,      "Inject RPU" },
+        { TemplateManager::KEY_MUXFINAL,         "Final Mux" },
     };
 
     int count = sizeof(entries) / sizeof(entries[0]);
     m_templateTable->setRowCount(count);
 
     for (int i = 0; i < count; ++i) {
-        auto *keyItem = new QTableWidgetItem(QString("%1 (%2)").arg(entries[i].desc, entries[i].key));
-        keyItem->setFlags(keyItem->flags() & ~Qt::ItemIsEditable);
-        keyItem->setData(Qt::UserRole, QString(entries[i].key));
-        m_templateTable->setItem(i, 0, keyItem);
-
-        auto *valItem = new QTableWidgetItem(m_templates->getTemplate(entries[i].key));
-        m_templateTable->setItem(i, 1, valItem);
+        auto *item = new QTableWidgetItem(QString("%1 (%2)").arg(entries[i].desc, entries[i].key));
+        item->setFlags(item->flags() & ~Qt::ItemIsEditable);
+        item->setData(Qt::UserRole, QString(entries[i].key));
+        m_templateTable->setItem(i, 0, item);
     }
 }
 
@@ -152,31 +231,27 @@ void SettingsDialog::resetTemplates()
     if (QMessageBox::question(this, "Reset Templates",
             "Reset all command templates to their defaults?",
             QMessageBox::Yes | QMessageBox::No) == QMessageBox::Yes) {
-        // Create a fresh TemplateManager to get defaults
-        TemplateManager defaults;
-        // Clear saved settings so defaults are used
         QSettings settings;
         settings.beginGroup("Templates");
         settings.remove("");
         settings.endGroup();
 
-        // Re-create with defaults
         TemplateManager fresh;
-
+        // Update the live template manager
         for (int i = 0; i < m_templateTable->rowCount(); ++i) {
             QString key = m_templateTable->item(i, 0)->data(Qt::UserRole).toString();
-            m_templateTable->item(i, 1)->setText(fresh.getTemplate(key));
+            m_templates->setTemplate(key, fresh.getTemplate(key));
         }
+        // Refresh editor
+        m_currentTemplateRow = -1;
+        int row = m_templateTable->currentRow();
+        if (row >= 0) onTemplateSelected(row);
     }
 }
 
 void SettingsDialog::applyTemplates()
 {
-    for (int i = 0; i < m_templateTable->rowCount(); ++i) {
-        QString key = m_templateTable->item(i, 0)->data(Qt::UserRole).toString();
-        QString val = m_templateTable->item(i, 1)->text();
-        m_templates->setTemplate(key, val);
-    }
+    saveCurrentTemplate();
     m_templates->save();
 }
 
