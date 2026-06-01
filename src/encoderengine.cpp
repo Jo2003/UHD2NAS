@@ -322,8 +322,8 @@ void EncoderEngine::startFinalMux()
     auto *mux = new ProcessRunner(this);
     connect(mux, &ProcessRunner::outputReady, this, [this](const QString &data) {
         emit logOutput(data);
-        // mkvmerge outputs "Progress: 45%"
-        QRegularExpression progressRe(R"(Progress:\s*(\d+)%)");
+        // mkvmerge outputs "Progress: 45%" or localized "Fortschritt: 45%"
+        QRegularExpression progressRe(R"([^:]+:\s*(\d+)%)");
         auto match = progressRe.match(data);
         if (match.hasMatch()) {
             emit encodeProgress(match.captured(1).toDouble());
