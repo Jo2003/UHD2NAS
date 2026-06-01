@@ -1,4 +1,7 @@
 #include "templatemanager.h"
+#include <QFile>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 TemplateManager::TemplateManager()
 {
@@ -184,4 +187,35 @@ QString TemplateManager::resolve(const QString &tmpl, const QMap<QString, QStrin
         result.replace("{" + it.key() + "}", it.value());
     }
     return result;
+}
+
+bool TemplateManager::exportToJson(const QString &filePath) const
+{
+    QJsonObject obj;
+    for (auto it = m_templates.cbegin(); it != m_templates.cend(); ++it) {
+        obj[it.key()] = it.value();
+    }
+    QJsonDocument doc(obj);
+    QFile file(filePath);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text))
+        return false;
+    file.write(doc.toJson(QJsonDocument::Indented));
+    return true;
+}
+
+bool TemplateManager::importFromJson(const QString &filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text))
+        return false;
+    QJsonDocument doc = QJsonDocument::fromJson(file.readAll());
+    if (!doc.isObject())
+        return false;
+    QJsonObject obj = doc.object();
+    for (auto it = obj.begin(); it != obj.end(); ++it) {
+        if (it.value().isString()) {
+            m_templates[it.key()] = it.value().toString();
+        }
+    }
+    return true;
 }

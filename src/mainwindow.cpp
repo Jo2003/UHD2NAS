@@ -193,6 +193,7 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 void MainWindow::closeEvent(QCloseEvent *event)
 {
     m_engine->abort();
+    saveSettings();
     QMainWindow::closeEvent(event);
 }
 
@@ -387,6 +388,14 @@ void MainWindow::loadSettings()
     m_ffprobePath = s.value("tools/ffprobe", findTool("ffprobe")).toString();
     m_doviToolPath = s.value("tools/dovi_tool", findTool("dovi_tool")).toString();
     m_mkvmergePath = s.value("tools/mkvmerge", findTool("mkvmerge")).toString();
+
+    // Restore window geometry
+    if (s.contains("window/geometry")) {
+        restoreGeometry(s.value("window/geometry").toByteArray());
+    } else {
+        // First start: sensible default size
+        resize(900, 800);
+    }
 }
 
 void MainWindow::saveSettings()
@@ -396,6 +405,7 @@ void MainWindow::saveSettings()
     s.setValue("tools/ffprobe", m_ffprobePath);
     s.setValue("tools/dovi_tool", m_doviToolPath);
     s.setValue("tools/mkvmerge", m_mkvmergePath);
+    s.setValue("window/geometry", saveGeometry());
 }
 
 QString MainWindow::findTool(const QString &name)

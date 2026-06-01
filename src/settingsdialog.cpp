@@ -131,10 +131,16 @@ SettingsDialog::SettingsDialog(TemplateManager *templates, QWidget *parent)
     // Template buttons
     auto *tmplBtnLayout = new QHBoxLayout();
     auto *saveTemplateBtn = new QPushButton("Save Template");
+    auto *exportBtn = new QPushButton("Export All...");
+    auto *importBtn = new QPushButton("Import...");
     auto *resetBtn = new QPushButton("Reset All to Defaults");
     connect(saveTemplateBtn, &QPushButton::clicked, this, &SettingsDialog::saveCurrentTemplate);
+    connect(exportBtn, &QPushButton::clicked, this, &SettingsDialog::exportTemplates);
+    connect(importBtn, &QPushButton::clicked, this, &SettingsDialog::importTemplates);
     connect(resetBtn, &QPushButton::clicked, this, &SettingsDialog::resetTemplates);
     tmplBtnLayout->addWidget(saveTemplateBtn);
+    tmplBtnLayout->addWidget(exportBtn);
+    tmplBtnLayout->addWidget(importBtn);
     tmplBtnLayout->addStretch();
     tmplBtnLayout->addWidget(resetBtn);
     tmplLayout->addLayout(tmplBtnLayout);
@@ -253,6 +259,35 @@ void SettingsDialog::applyTemplates()
 {
     saveCurrentTemplate();
     m_templates->save();
+}
+
+void SettingsDialog::exportTemplates()
+{
+    saveCurrentTemplate();
+    QString path = QFileDialog::getSaveFileName(this, "Export Templates", "uhd2nas_templates.json",
+                                                 "JSON Files (*.json)");
+    if (path.isEmpty()) return;
+    if (!m_templates->exportToJson(path)) {
+        QMessageBox::critical(this, "Export Failed", "Could not write to file.");
+    } else {
+        QMessageBox::information(this, "Export", "Templates exported successfully.");
+    }
+}
+
+void SettingsDialog::importTemplates()
+{
+    QString path = QFileDialog::getOpenFileName(this, "Import Templates", QString(),
+                                                 "JSON Files (*.json)");
+    if (path.isEmpty()) return;
+    if (!m_templates->importFromJson(path)) {
+        QMessageBox::critical(this, "Import Failed", "Could not read or parse the file.");
+    } else {
+        // Refresh editor
+        m_currentTemplateRow = -1;
+        int row = m_templateTable->currentRow();
+        if (row >= 0) onTemplateSelected(row);
+        QMessageBox::information(this, "Import", "Templates imported successfully.");
+    }
 }
 
 QString SettingsDialog::ffmpegPath() const { return m_ffmpegEdit->text(); }

@@ -74,6 +74,20 @@ public:
     void save();
 
     /**
+     * @brief Export all templates to a JSON file.
+     * @param filePath Path to write the JSON file.
+     * @return True on success.
+     */
+    bool exportToJson(const QString &filePath) const;
+
+    /**
+     * @brief Import templates from a JSON file.
+     * @param filePath Path to the JSON file.
+     * @return True on success.
+     */
+    bool importFromJson(const QString &filePath);
+
+    /**
      * @brief Load user-modified templates from QSettings (overrides defaults).
      */
     void load();

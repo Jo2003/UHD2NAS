@@ -63,4 +63,6 @@ private:
     void applyTemplates();
     void onTemplateSelected(int row);
     void saveCurrentTemplate();
+    void exportTemplates();
+    void importTemplates();
 };
